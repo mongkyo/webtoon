@@ -3,7 +3,8 @@ from bs4 import BeautifulSoup
 import re
 import os
 
-from data import Episode, Webtoon
+from data import Episode, Webtoon, WebtoonNotExist
+
 
 
 class WebtoonData:
@@ -24,9 +25,8 @@ class Crawler:
         root = os.path.dirname(os.path.abspath(__name__))
         dir_path = os.path.join(root, 'saved_file')
         file_path = os.path.join(dir_path, 'weekday.html')
-
         if os.path.exists(file_path):
-            html = open('file_path', 'rt').read()
+            html = open(file_path, 'rt').read()
         else:
             os.makedirs(dir_path, exist_ok=True)
             response = requests.get('https://comic.naver.com/webtoon/weekday.nhn')
@@ -42,7 +42,7 @@ class Crawler:
             col_list = soup.select_one('div.list_area.daily_all').select('.col')
             li_list = []
             for col in col_list:
-                col_li_list = col.select('div.col_inner ul > li')
+                col_li_list = col.select('.col_inner ul > li')
                 li_list.extend(col_li_list)
 
             for li in li_list:
@@ -53,16 +53,16 @@ class Crawler:
                 url_thumbnail = li.select_one('.thumb > a > img')['src']
 
                 if not title in self._webtoon_dict:
-                    new_webtoon_list = WebtoonData(title, webtoon_id, url_thumbnail)
-                    self._webtoon_dict[title] = new_webtoon_list
-
-            for title, webtoon in self._webtoon_dict.items():
-                print(title)
+                    new_webtoon = Webtoon(webtoon_id, title, url_thumbnail)
+                    self._webtoon_dict[title] = new_webtoon
 
         return self._webtoon_dict
 
     def get_webtoon(self, title):
-        return self._webtoon_dict[title]
+        try:
+            return self.webtoon_dict[title]
+        except KeyError:
+            raise WebtoonNotExist(title)
 
     def show_webtoon_list(self):
         for title, webtoon in self.webtoon_dict.items():
@@ -71,4 +71,5 @@ class Crawler:
 
 if __name__ == '__main__':
     crawler = Crawler()
-    crawler.show_webtoon_list()
+    w = crawler.get_webtoon('유미의 세포들')
+    print(w.episode_dict)

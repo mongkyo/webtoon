@@ -4,7 +4,7 @@ class Episode:
         self.title = title
         self.url_thumbnail = url_thumbnail
         self.rating = rating
-        self.created_date
+        self.created_date = created_date
 
     def __repr__(self):
         return self.title
