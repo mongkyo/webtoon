@@ -73,6 +73,7 @@ class Crawler:
         :param title:
         :return:
         """
+        import ipdb; ipdb.set_trace()
         try:
             return self.webtoon_dict[title]
         except KeyError:
