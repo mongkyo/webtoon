@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 import re
+import os
 
 from data import Episode, Webtoon
 
@@ -16,9 +17,22 @@ class WebtoonData:
 
 
 class Crawler:
+    
+    def get_html(self):
+
+
+
     def show_webtoon_list(self):
         response = requests.get('https://comic.naver.com/webtoon/weekday.nhn')
-        html = response.text
+        root = os.path.dirname(os.path.abspath(__name__))
+        file_path = os.path.join(root, 'saved_file', 'weekday.html')
+        
+        if os.path.exists(file_path):
+            html = open('file_path', 'rt').read()
+        else:
+            response = requests.get('https://comic.naver.com/webtoon/weekday.nhn')
+            html = response.text
+
         soup = BeautifulSoup(html, 'lxml')
         col_list = soup.select_one('div.list_area.daily_all').select('.col')
         li_list = []
