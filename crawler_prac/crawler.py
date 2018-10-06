@@ -17,42 +17,55 @@ class WebtoonData:
 
 
 class Crawler:
-    
-    def get_html(self):
+    def __init__(self):
+        self._webtoon_dict = {}
 
-
-
-    def show_webtoon_list(self):
-        response = requests.get('https://comic.naver.com/webtoon/weekday.nhn')
+    def get_html(self) :
         root = os.path.dirname(os.path.abspath(__name__))
-        file_path = os.path.join(root, 'saved_file', 'weekday.html')
-        
+        dir_path = os.path.join(root, 'saved_file')
+        file_path = os.path.join(dir_path, 'weekday.html')
+
         if os.path.exists(file_path):
             html = open('file_path', 'rt').read()
         else:
+            os.makedirs(dir_path, exist_ok=True)
             response = requests.get('https://comic.naver.com/webtoon/weekday.nhn')
             html = response.text
+            open(file_path, 'wt').write(html)
+        return html
 
-        soup = BeautifulSoup(html, 'lxml')
-        col_list = soup.select_one('div.list_area.daily_all').select('.col')
-        li_list = []
-        for col in col_list:
-            col_li_list = col.select('div.col_inner ul > li')
-            li_list.extend(col_li_list)
+    @property
+    def webtoon_dict(self):
+        if not self._webtoon_dict:
+            html = self.get_html()
+            soup = BeautifulSoup(html, 'lxml')
+            col_list = soup.select_one('div.list_area.daily_all').select('.col')
+            li_list = []
+            for col in col_list:
+                col_li_list = col.select('div.col_inner ul > li')
+                li_list.extend(col_li_list)
 
-        webtoon_dict = {}
-        for li in li_list:
-            href = li.select_one('a.title')['href']
-            m = re.search(r'titleId=(\d+)', href)
-            webtoon_id = m.group(1)
-            title = li.select_one('a.title').get_text(strip=True)
-            url_thumbnail = li.select_one('.thumb > a > img')['src']
+            for li in li_list:
+                href = li.select_one('a.title')['href']
+                m = re.search(r'titleId=(\d+)', href)
+                webtoon_id = m.group(1)
+                title = li.select_one('a.title').get_text(strip=True)
+                url_thumbnail = li.select_one('.thumb > a > img')['src']
 
-            if not title in webtoon_dict:
-                new_webtoon_list = WebtoonData(title, webtoon_id, url_thumbnail)
-                webtoon_dict[title] = new_webtoon_list
+                if not title in self._webtoon_dict:
+                    new_webtoon_list = WebtoonData(title, webtoon_id, url_thumbnail)
+                    self._webtoon_dict[title] = new_webtoon_list
 
-        for title, webtoon in webtoon_dict.items():
+            for title, webtoon in self._webtoon_dict.items():
+                print(title)
+
+        return self._webtoon_dict
+
+    def get_webtoon(self, title):
+        return self._webtoon_dict[title]
+
+    def show_webtoon_list(self):
+        for title, webtoon in self.webtoon_dict.items():
             print(title)
 
 
