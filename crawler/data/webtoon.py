@@ -14,6 +14,7 @@ __all__ = (
 
 class Webtoon:
     TEST_WEBTOON_ID = 714834
+    EPISODE_LIST_BASE_URL = 'https://comic.naver.com/webtoon/list.nhn'
 
     def __init__(self, webtoon_id, title, url_thumbnail):
         self.webtoon_id = webtoon_id
@@ -24,49 +25,38 @@ class Webtoon:
     def __repr__(self):
         return self.title
 
-    @property
-    def url(self):
-        return f'https://comic.naver.com/webtoon/list.nhn?titleId={self.webtoon_id}'
+    def get_episode_list_url_params_dict(self, **kwargs):
+        # 기본적으로 {'titleId' : <자신의 webtoon_id>}
+        # 인 dict를 리턴
+        # 키워드 인자가 주어지면 해당 키워드인자를 추가한 dict를 리턴
+        # ex) 그냥 호출시 리턴 : {'titleId': 234343}
+        #     get_epi...(page=1)로 호출시 리턴:
+        #           {'titleId': 234234, 'page':1}
+        # 해당 키워드인자의 key, value값을
+        # EPISODE_LIST_BASE_URL에 Get parameters로 설정
+        # 이후
+        params = {'titleId': self.webtoon_id}
+        params.update(kwargs)
+        return params
 
     @property
     def episode_dict(self):
-        """
-        에피소드 목록을 파싱하는부분을 먼저 연습
-            -> notebook에서
+        def get_page_episode_dict(page):
+            """
 
-        자신의 _episode_dict가 있다면 그대로 리턴
-        아니라면 채워준다
-         주소는 (에피소드 리스트 URL)
-          https://comic.naver.com/webtoon/list.nhn?titleId={self.webtoon_id}
-
-        키는 Episode의 episode_id
-            에피소드 상세 URL에서의 'no' GET parameter값에 해당
-            https://comic.naver.com/webtoon/detail.nhn?titleId=651673&no=345&weekday=wed
-
-        webtoon_dict를 채울때와 비슷하게, 새로운 Episode클래스 인스턴스를 만들어 할당
-
-        1. 현재는 1페이지 내용만 불러오므로
-           page값을 1부터 늘려가면서 '다음'버튼이 안보일때까지 내용을 가져옴 (페이지 수가 적은 웹툰으로 테스트!)
-        2. pickle을 사용해서 Crawler가 가진 webtoon_dict를 저장, 불러오기 하는 방식으로 중복 데이터를 웹에서 받지 않도록 함
-        3. CLI를 구성해서 사용자가 셸에서 선택해서 웹툰 크롤러 기능을 사용할 수 있도록 만들기 (main.py)
-        4. Episode의 Detail페이지에서 그림을 다운로드 받기
-            requests로 그림 요청시 Referer설정을 해줘야 함 <- 아니면 403또는 400에러 발생
-                headers = {'Referer': 'http://comic.naver.com/webtoon/list.nhn?titleId=<WebtoonId>'}
-                requests.get(<URL>, headers=headers)
-
-            저장시
-                response = requests.get(<URL>)
-                open(<path>, 'wb').write(response.content)
-            코드를 사용
-        5. 다운로드 받은 그림을 볼 수 있는 HTML생성하기
-
-        :return:
-        """
-        if not self._episode_dict:
-            # 비어있는 경우
-           # self.url (목록페이지 URL)에 HTTP요청 후, 받은 결과를 파싱 시작
-            response = requests.get(self.url)
+            :param page: 크롤링 할 페이지
+            :return: {'has_next': <다음페이지가 있는지>',
+                      'episode_dict': episode_id를 키, Episode인스턴스를 값으로 쓰는 dict
+            """
+            has_next =
+            # 위에서 만든 메서드를 리턴된 dict를 사용,
+            # requests를 이용한 요청에 Get parameters를 전달
+            response = requests.get(
+                self.EPISODE_LIST_BASE_URL,
+                params=self.get_episode_list_url_params_dict(page=page))
             soup = BeautifulSoup(response.text, 'lxml')
+            # 이 page에 해당하는 Episode들을 담을 dict
+            page_episode_dict = OrderedDict()
 
             # 에피소드 목록이 table.viewList의 각 'tr'요소 하나씩에 해당함
             table = soup.select_one('table.viewList')
@@ -90,12 +80,23 @@ class Webtoon:
                         rating=rating,
                         created_date=created_date,
                     )
-                    # 인스턴스의 _episode_dict사전에 episode_id (파싱데이터에서는 'no'변수)키로 인스턴스 할당
-                    self._episode_dict[no] = episode
+                    # 리턴해줄 dict 변수에 값 할당
+                    page_episode_dict[no] = episode
                 except:
                     # 위 파싱에 실패하는 경우에는 무시 (tr이 의도와 다르게 생겼을때 실패함)
                     # 기왕이면 실패 로그를 쌓으면 좋음 (어떤 웹툰의 몇 번째 페이지 몇 번째 row시도중 실패했다를 텍스트 파일에)
                     pass
+
+            next_btn = soup.select_one('.paginate a.next')
+            return {
+                'episode_dict': page_episode_dict,
+                'has_next': bool(next_btn),
+            }
+
+        if not self._episode_dict:
+            # 비어있는 경우
+            # 1페이지부터 끝페이지까지 get_page_episode_dict
+            pass
         return self._episode_dict
 
     def get_episode(self, index):

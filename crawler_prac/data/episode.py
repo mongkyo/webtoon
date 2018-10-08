@@ -8,3 +8,9 @@ class Episode:
 
     def __repr__(self):
         return self.title
+
+
+class Count:
+    def __init__(self):
+        self.new_page = 1
+        self.old_page = 1
