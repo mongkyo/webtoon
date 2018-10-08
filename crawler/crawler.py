@@ -1,6 +1,7 @@
 import os
 import re
 
+import pickle
 import requests
 from bs4 import BeautifulSoup
 
@@ -8,8 +9,12 @@ from data import Episode, Webtoon, WebtoonNotExist
 
 
 class Crawler:
+    ROOT_PATH = os.path.dirname(os.path.abspath(__file__))
+    SAVE_PATH = os.path.join(ROOT_PATH, 'saved_data')
     def __init__(self):
         self._webtoon_dict = {}
+        # 초기화 함수에서 저장 폴더를 만들어줌
+        os.makedirs(self.SAVE_PATH, exist_ok=True)
 
     def get_html(self):
         """
@@ -24,8 +29,8 @@ class Crawler:
         :return: HTML데이터 문자열
         """
         # weekday.html파일의 경로
-        root = os.path.dirname(os.path.abspath(__file__))
-        dir_path = os.path.join(root, 'saved_data')
+        root= os.path.dirname(os.path.abspath(__file__))
+        dir_path= os.path.join(root, 'saved_data')
         file_path = os.path.join(dir_path, 'weekday.html')
 
         if os.path.exists(file_path):
@@ -37,7 +42,6 @@ class Crawler:
             # HTTP요청결과를 가져오고, 이후 다시 요청시 읽기위한 파일을 기록
 
             # 파일을 저장할 폴더를 생성. 이미 존재하는 경우 무시하기 위해 exist_ok인수 추가
-            os.makedirs(dir_path, exist_ok=True)
             response = requests.get('https://comic.naver.com/webtoon/weekday.nhn')
             html = response.text
             open(file_path, 'wt').write(html)
@@ -81,6 +85,18 @@ class Crawler:
     def show_webtoon_list(self):
         for title, webtoon in self.webtoon_dict.items():
             print(title)
+
+    def save(self):
+        # self._webtoon_dict의 내용을
+        # ./saved_data/crawler.pickle 파일에 기록
+        with open(os.path.join(self.SAVE_PATH, 'crawler.pickle'), 'wb') as f:
+            pickle.dump(self._webtoon_dict, f)
+
+    def load(self):
+        # ./saved_data/crawler.pickle 파일의 내용을 가지고
+        # self._webtoon_dict객체를 재구성
+        with open(os.path.join(self.SAVE_PATH, 'crawler.pickle'), 'rb') as f:
+            self._webtoon_dict = pickle.load(f)
 
 
 if __name__ == '__main__':
