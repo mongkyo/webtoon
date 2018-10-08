@@ -95,7 +95,7 @@ class Webtoon:
 
         if not self._episode_dict:
             # 비어있는 경우
-            # 1페이지부터 끝페이지까지 get_page_episode_dict
+            # 1페이지부터 끝페이지까지 get_page_episode_dict를 실행한 결과를 self._episode_dict에 추가
             pass
         return self._episode_dict
 
